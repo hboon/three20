@@ -207,6 +207,10 @@
   return y;
 }
 
+- (CGRect)screenFrame {
+  return CGRectMake(self.screenViewX, self.screenViewY, self.width, self.height);
+}
+
 - (CGPoint)offsetFromView:(UIView*)otherView {
   CGFloat x = 0, y = 0;
   for (UIView* view = self; view && view != otherView; view = view.superview) {

@@ -1,11 +1,10 @@
 #import "Three20/TTStyle.h"
 
-@class TTStyledElement, TTStyledTextNode, TTStyledImageNode;
+@class TTStyledElement, TTStyledTextNode, TTStyledImageNode, TTStyledBoxFrame;
 
 @interface TTStyledFrame : NSObject {
   TTStyledElement* _element;
   TTStyledFrame* _nextFrame;
-  TTStyle* _style;
   CGRect _bounds;
 }
 
@@ -20,11 +19,6 @@
 @property(nonatomic,retain) TTStyledFrame* nextFrame;
 
 /**
- * The style used to render the frame;
- */
-@property(nonatomic,retain) TTStyle* style;
-
-/**
  * The bounds of the content that is displayed by this frame.
  */
 @property(nonatomic) CGRect bounds;
@@ -34,6 +28,8 @@
 @property(nonatomic) CGFloat width;
 @property(nonatomic) CGFloat height;
 
+- (UIFont*)font;
+
 - (id)initWithElement:(TTStyledElement*)element;
 
 /**
@@ -41,31 +37,44 @@
  */
 - (void)drawInRect:(CGRect)rect;
 
+- (TTStyledBoxFrame*)hitTest:(CGPoint)point;
+
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface TTStyledBoxFrame : TTStyledFrame {
+@interface TTStyledBoxFrame : TTStyledFrame <TTStyleDelegate> {
   TTStyledBoxFrame* _parentFrame;
   TTStyledFrame* _firstChildFrame;
+  TTStyle* _style;
 }
 
 @property(nonatomic,assign) TTStyledBoxFrame* parentFrame;
 @property(nonatomic,retain) TTStyledFrame* firstChildFrame;
 
+/**
+ * The style used to render the frame;
+ */
+@property(nonatomic,retain) TTStyle* style;
+
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface TTStyledInlineFrame : TTStyledBoxFrame
+@interface TTStyledInlineFrame : TTStyledBoxFrame {
+  TTStyledInlineFrame* _inlinePreviousFrame;
+  TTStyledInlineFrame* _inlineNextFrame;
+}
 
 @property(nonatomic,readonly) TTStyledInlineFrame* inlineParentFrame;
+@property(nonatomic,assign) TTStyledInlineFrame* inlinePreviousFrame;
+@property(nonatomic,assign) TTStyledInlineFrame* inlineNextFrame;
 
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-@interface TTStyledTextFrame : TTStyledFrame <TTStyleDelegate> {
+@interface TTStyledTextFrame : TTStyledFrame {
   TTStyledTextNode* _node;
   NSString* _text;
   UIFont* _font;
@@ -94,12 +103,18 @@
 
 @interface TTStyledImageFrame : TTStyledFrame <TTStyleDelegate> {
   TTStyledImageNode* _imageNode;
+  TTStyle* _style;
 }
 
 /** 
  * The node represented by the frame.
  */
 @property(nonatomic,readonly) TTStyledImageNode* imageNode;
+
+/**
+ * The style used to render the frame;
+ */
+@property(nonatomic,retain) TTStyle* style;
 
 - (id)initWithElement:(TTStyledElement*)element node:(TTStyledImageNode*)node;
 

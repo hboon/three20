@@ -1,5 +1,6 @@
 #import "Three20/TTStyle.h"
 #import "Three20/TTShape.h"
+#import "Three20/TTURLCache.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // global
@@ -141,6 +142,20 @@ static const NSInteger kDefaultLightSource = 125;
   }
 }
 
+- (id)styleForPart:(NSString*)name {
+  TTStyle* style = self;
+  while (style) {
+    if ([style isKindOfClass:[TTPartStyle class]]) {
+      TTPartStyle* partStyle = (TTPartStyle*)style;
+      if ([partStyle.name isEqualToString:name]) {
+        return partStyle;
+      }
+    }
+    style = style.next;
+  }
+  return nil;
+}
+
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -164,6 +179,38 @@ static const NSInteger kDefaultLightSource = 125;
   }
   
   [self.next draw:context];
+}
+
+@end
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+@implementation TTPartStyle
+
+@synthesize name = _name, style = _style;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// class public
+
++ (TTPartStyle*)styleWithName:(NSString*)name style:(TTStyle*)stylez next:(TTStyle*)next {
+  TTPartStyle* style = [[[self alloc] initWithNext:next] autorelease];
+  style.name = name;
+  style.style = stylez;
+  return style;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// TTStyle
+
+- (void)draw:(TTStyleContext*)context {
+  [self.next draw:context];
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+- (void)drawPart:(TTStyleContext*)context {
+  [_style draw:context];
 }
 
 @end
@@ -287,7 +334,7 @@ static const NSInteger kDefaultLightSource = 125;
 
 @implementation TTBoxStyle
 
-@synthesize margin = _margin, padding = _padding;
+@synthesize margin = _margin, padding = _padding, minSize = _minSize, position = _position;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // NSObject
@@ -304,11 +351,27 @@ static const NSInteger kDefaultLightSource = 125;
   return style;
 }
 
++ (TTBoxStyle*)styleWithFloats:(TTPosition)position next:(TTStyle*)next {
+  TTBoxStyle* style = [[[self alloc] initWithNext:next] autorelease];
+  style.position = position;
+  return style;
+}
+
 + (TTBoxStyle*)styleWithMargin:(UIEdgeInsets)margin padding:(UIEdgeInsets)padding
                next:(TTStyle*)next {
   TTBoxStyle* style = [[[self alloc] initWithNext:next] autorelease];
   style.margin = margin;
   style.padding = padding;
+  return style;
+}
+
++ (TTBoxStyle*)styleWithMargin:(UIEdgeInsets)margin padding:(UIEdgeInsets)padding
+               minSize:(CGSize)minSize position:(TTPosition)position next:(TTStyle*)next {
+  TTBoxStyle* style = [[[self alloc] initWithNext:next] autorelease];
+  style.margin = margin;
+  style.padding = padding;
+  style.minSize = minSize;
+  style.position = position;
   return style;
 }
 
@@ -319,6 +382,8 @@ static const NSInteger kDefaultLightSource = 125;
   if (self = [super initWithNext:next]) {
     _margin = UIEdgeInsetsZero;
     _padding = UIEdgeInsetsZero;
+    _minSize = CGSizeZero;
+    _position = TTPositionStatic;
   }
   return self;
 }
@@ -456,11 +521,14 @@ static const NSInteger kDefaultLightSource = 125;
 
   CGRect rect = context.contentFrame;
   CGRect titleRect = [self rectForText:text forSize:rect.size withFont:font];
-  [text drawAtPoint:CGPointMake(titleRect.origin.x+rect.origin.x, titleRect.origin.y+rect.origin.y)
+  
+  titleRect.size = [text drawAtPoint:
+        CGPointMake(titleRect.origin.x+rect.origin.x, titleRect.origin.y+rect.origin.y)
         forWidth:rect.size.width withFont:font
         minFontSize:_minimumFontSize ? _minimumFontSize : font.pointSize
         actualFontSize:nil lineBreakMode:_lineBreakMode
         baselineAdjustment:UIBaselineAdjustmentAlignCenters];
+  context.contentFrame = titleRect;
 
   CGContextRestoreGState(ctx);
 }
@@ -545,7 +613,7 @@ static const NSInteger kDefaultLightSource = 125;
 @implementation TTImageStyle
 
 @synthesize imageURL = _imageURL, image = _image, defaultImage = _defaultImage,
-            contentMode = _contentMode;
+            contentMode = _contentMode, size = _size;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // class public
@@ -564,20 +632,21 @@ static const NSInteger kDefaultLightSource = 125;
   return style;
 }
 
++ (TTImageStyle*)styleWithImageURL:(NSString*)imageURL defaultImage:(UIImage*)defaultImage
+                 contentMode:(UIViewContentMode)contentMode size:(CGSize)size next:(TTStyle*)next {
+  TTImageStyle* style = [[[self alloc] initWithNext:next] autorelease];
+  style.imageURL = imageURL;
+  style.defaultImage = defaultImage;
+  style.contentMode = contentMode;
+  style.size = size;
+  return style;
+}
+
 + (TTImageStyle*)styleWithImage:(UIImage*)image next:(TTStyle*)next {
   TTImageStyle* style = [[[self alloc] initWithNext:next] autorelease];
   style.image = image;
   return style;
 }
-
-+ (TTImageStyle*)styleWithImage:(UIImage*)image contentMode:(UIViewContentMode)contentMode
-                 next:(TTStyle*)next {
-  TTImageStyle* style = [[[self alloc] initWithNext:next] autorelease];
-  style.image = image;
-  style.contentMode = contentMode;
-  return style;
-}
-
 
 + (TTImageStyle*)styleWithImage:(UIImage*)image defaultImage:(UIImage*)defaultImage
                  next:(TTStyle*)next {
@@ -585,6 +654,27 @@ static const NSInteger kDefaultLightSource = 125;
   style.image = image;
   style.defaultImage = defaultImage;
   return style;
+}
+
++ (TTImageStyle*)styleWithImage:(UIImage*)image defaultImage:(UIImage*)defaultImage
+                 contentMode:(UIViewContentMode)contentMode size:(CGSize)size next:(TTStyle*)next {
+  TTImageStyle* style = [[[self alloc] initWithNext:next] autorelease];
+  style.image = image;
+  style.defaultImage = defaultImage;
+  style.contentMode = contentMode;
+  style.size = size;
+  return style;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// private
+
+- (UIImage*)imageForContext:(TTStyleContext*)context {
+  UIImage* image = self.image;
+  if (!image && [context.delegate respondsToSelector:@selector(imageForLayerWithStyle:)]) {
+    image = [context.delegate imageForLayerWithStyle:self];
+  }
+  return image;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -596,6 +686,7 @@ static const NSInteger kDefaultLightSource = 125;
     _image = nil;
     _defaultImage = nil;
     _contentMode = UIViewContentModeScaleToFill;
+    _size = CGSizeZero;
   }
   return self;
 }
@@ -611,17 +702,19 @@ static const NSInteger kDefaultLightSource = 125;
 // TTStyle
 
 - (void)draw:(TTStyleContext*)context {
-  if (_image) {
-    [_image drawInRect:context.frame contentMode:_contentMode];
-  } else if (_defaultImage) {
-    [_defaultImage drawInRect:context.frame contentMode:_contentMode];
+  UIImage* image = [self imageForContext:context];
+  if (image) {
+    [image drawInRect:context.contentFrame contentMode:_contentMode];
   }
   return [self.next draw:context];
 }
 
-- (CGSize)addToSize:(CGSize)size context:(TTStyleContext*)context {  
-  if (_contentMode == UIViewContentModeScaleToFill) {
-    UIImage* image = _image ? _image : _defaultImage;
+- (CGSize)addToSize:(CGSize)size context:(TTStyleContext*)context {
+  if (_size.width || _size.height) {
+    size.width += _size.width;
+    size.height += _size.height;
+  } else if (_contentMode == UIViewContentModeScaleToFill) {
+    UIImage* image = [self imageForContext:context];
     if (image) {
       size.width += image.size.width;
       size.height += image.size.height;
@@ -635,8 +728,19 @@ static const NSInteger kDefaultLightSource = 125;
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// public
+
+- (UIImage*)image {
+  if (!_image && _imageURL) {
+    _image = [[[TTURLCache sharedCache] imageForURL:_imageURL] retain];
+  }
+  return _image;
+}
+
 @end
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 @implementation TTMaskStyle
 

@@ -14,6 +14,8 @@
 
 - (id)firstParentOfClass:(Class)cls;
 
+- (void) performDefaultAction;
+
 @end
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,6 +48,9 @@
 
 - (void)addChild:(TTStyledNode*)child;
 - (void)addText:(NSString*)text;
+- (void)replaceChild:(TTStyledNode*)oldChild withChild:(TTStyledNode*)newChild;
+
+- (TTStyledNode*)getElementByClassName:(NSString*)className;
 
 @end
 
@@ -111,10 +116,16 @@
 @interface TTStyledImageNode : TTStyledElement {
   NSString* _url;
   UIImage* _image;
+  UIImage* _defaultImage;
+  CGFloat _width;
+  CGFloat _height;
 }
 
 @property(nonatomic,retain) NSString* url;
 @property(nonatomic,retain) UIImage* image;
+@property(nonatomic,retain) UIImage* defaultImage;
+@property(nonatomic) CGFloat width;
+@property(nonatomic) CGFloat height;
 
 - (id)initWithURL:(NSString*)url;
 

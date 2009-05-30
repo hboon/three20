@@ -24,6 +24,7 @@
 @property(nonatomic,readonly) UIColor* tableHeaderTextColor;
 @property(nonatomic,readonly) UIColor* tableHeaderShadowColor;
 @property(nonatomic,readonly) UIColor* tableHeaderTintColor;
+@property(nonatomic,readonly) UIColor* tableSeparatorColor;
 @property(nonatomic,readonly) UIColor* searchTableBackgroundColor;
 @property(nonatomic,readonly) UIColor* searchTableSeparatorColor;
 
@@ -50,5 +51,7 @@
 
 - (TTStyle*)toolbarButtonForState:(UIControlState)state shape:(TTShape*)shape
             tintColor:(UIColor*)tintColor font:(UIFont*)font;
+
+- (TTStyle*)selectionFillStyle:(TTStyle*)next;
 
 @end
