@@ -218,7 +218,14 @@ static CGFloat kThumbnailRowHeight = 79;
   self.view.autoresizesSubviews = YES;
 	self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 
-  CGFloat y = TTOSVersionIsAtLeast(3.0) ? 0 : -CHROME_HEIGHT;
+  CGFloat y = 0;  
+  if (!TTOSVersionIsAtLeast(3.0)) {
+    if ([self respondsToSelector:@selector(setWantsFullScreenLayout:)]) {
+      y = -STATUS_HEIGHT;
+    } else {
+      y = -CHROME_HEIGHT;
+    }
+  }
   CGRect innerFrame = CGRectMake(0, y,
                                  screenFrame.size.width, screenFrame.size.height + CHROME_HEIGHT);
   UIView* innerView = [[[UIView alloc] initWithFrame:innerFrame] autorelease];
@@ -243,7 +250,7 @@ static CGFloat kThumbnailRowHeight = 79;
   [super viewDidAppear:animated];
   [self suspendLoadingThumbnails:NO];
 
-  if (!TTOSVersionIsAtLeast(3.0)) {
+  if (![self respondsToSelector:@selector(setWantsFullScreenLayout:)]) {
     if (!self.nextViewController) {
       self.view.superview.frame = CGRectOffset(self.view.superview.frame, 0, TOOLBAR_HEIGHT);
     }
@@ -253,7 +260,7 @@ static CGFloat kThumbnailRowHeight = 79;
 - (void)viewWillDisappear:(BOOL)animated {
   [super viewWillDisappear:animated];
 
-  if (!TTOSVersionIsAtLeast(3.0)) {
+  if (![self respondsToSelector:@selector(setWantsFullScreenLayout:)]) {
     self.view.superview.frame = CGRectOffset(self.view.superview.frame, 0, TOOLBAR_HEIGHT);
   }
 }  
